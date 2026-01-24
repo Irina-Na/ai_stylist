@@ -340,6 +340,8 @@
                 { x: 0, z: -6 }
             ];
             
+            const textureLoader = new THREE.TextureLoader();
+            
             itemData.forEach((item, index) => {
                 if (index >= positions.length) return;
                 
@@ -347,12 +349,28 @@
                 
                 // Create 3D representation (plane with texture)
                 const geometry = new THREE.PlaneGeometry(2, 2);
-                const material = new THREE.MeshBasicMaterial({
-                    color: 0xffffff,
-                    transparent: true,
-                    opacity: 0.9,
-                    side: THREE.DoubleSide
-                });
+                
+                // Use data URI if available, otherwise use URL
+                const imageUrl = item.image_data_uri || item.image_url;
+                
+                let material;
+                if (imageUrl) {
+                    const texture = textureLoader.load(imageUrl);
+                    material = new THREE.MeshBasicMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.95,
+                        side: THREE.DoubleSide
+                    });
+                } else {
+                    // Fallback to white material
+                    material = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.9,
+                        side: THREE.DoubleSide
+                    });
+                }
                 
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.position.set(pos.x, 1.5, pos.z);
@@ -408,30 +426,56 @@
             Object.assign(sceneConfig, config);
             
             // Update background
-            scene.background = new THREE.Color(sceneConfig.backgroundColor);
-            scene.fog.color = new THREE.Color(sceneConfig.fogColor);
-            scene.fog.density = sceneConfig.fogDensity;
+            if (config.backgroundColor) {
+                scene.background = new THREE.Color(config.backgroundColor);
+            }
+            if (config.fogColor) {
+                scene.fog.color = new THREE.Color(config.fogColor);
+            }
+            if (config.fogDensity !== undefined) {
+                scene.fog.density = config.fogDensity;
+            }
             
             // Update spotlights
-            spotlights.forEach(spotlight => {
-                spotlight.intensity = sceneConfig.spotlightIntensity;
-                spotlight.color = new THREE.Color(sceneConfig.spotlightColor);
-            });
+            if (config.spotlightIntensity !== undefined || config.spotlightColor) {
+                spotlights.forEach(spotlight => {
+                    if (config.spotlightIntensity !== undefined) {
+                        spotlight.intensity = config.spotlightIntensity;
+                    }
+                    if (config.spotlightColor) {
+                        spotlight.color = new THREE.Color(config.spotlightColor);
+                    }
+                });
+            }
             
             // Update particles
-            if (particles) {
-                scene.remove(particles);
+            if (config.particleCount !== undefined || config.particleSpeed !== undefined) {
+                if (particles) {
+                    scene.remove(particles);
+                }
                 createParticles();
             }
             
             // Update camera
-            camera.position.set(0, sceneConfig.cameraHeight, sceneConfig.cameraDistance);
-            camera.lookAt(0, 0, 0);
+            if (config.cameraDistance !== undefined || config.cameraHeight !== undefined) {
+                camera.position.set(
+                    0, 
+                    config.cameraHeight || sceneConfig.cameraHeight, 
+                    config.cameraDistance || sceneConfig.cameraDistance
+                );
+                camera.lookAt(0, 0, 0);
+            }
             
             // Update scene info
-            document.getElementById('scene-theme').textContent = `Theme: ${sceneConfig.theme}`;
-            document.getElementById('scene-lighting').textContent = `Lighting: ${sceneConfig.lighting}`;
-            document.getElementById('scene-atmosphere').textContent = `Atmosphere: ${sceneConfig.atmosphere}`;
+            if (config.theme) {
+                document.getElementById('scene-theme').textContent = `Theme: ${config.theme}`;
+            }
+            if (config.lighting) {
+                document.getElementById('scene-lighting').textContent = `Lighting: ${config.lighting}`;
+            }
+            if (config.atmosphere) {
+                document.getElementById('scene-atmosphere').textContent = `Atmosphere: ${config.atmosphere}`;
+            }
         }
 
         function updateCover(title, subtitle, badges) {

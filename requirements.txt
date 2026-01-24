@@ -1,14 +1,19 @@
 # UI & Web server
-streamlit==1.35.0        # stable Streamlit release
+streamlit==1.22.0        # stable Streamlit release (Python 3.7 compatible)
 
 # LLM client
 openai>=1.24.1           # v1-style SDK with .beta.chat API
-python-dotenv==1.1.0
+cerebras-cloud-sdk>=0.6.0  # Cerebras API client
+python-dotenv==0.21.1
 # Data handling
-pandas>=2.2.0            # DataFrame operations
-numpy>=1.26.0            # pandas dependency, pinned for reproducibility
-pyarrow>=16.1.0          # parquet/feather I/O support
+pandas>=1.3.5            # DataFrame operations (Python 3.7 compatible)
+numpy>=1.21.6            # pandas dependency, pinned for reproducibility (Python 3.7 compatible)
+pyarrow>=12.0.1          # parquet/feather I/O support (Python 3.7 compatible)
 
 # Data models & validation
-pydantic>=2.7.0          # BaseModel, Field, validation helpers
-langfuse==3.3.0
+pydantic>=1.10.18        # BaseModel, Field, validation helpers (Python 3.7 compatible)
+# langfuse>=2.0.0      # Removed - not compatible with Python 3.7
+
+# Image processing (Runway Director)
+requests>=2.31.0         # HTTP client for downloading images
+Pillow>=9.5.0            # Image processing and manipulation (Python 3.7 compatible)

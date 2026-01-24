@@ -4,43 +4,112 @@ import os
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
-import os
 import pandas as pd
 
 import openai
+import cerebras.cloud.sdk as cerebras
 import prompts
 from prompts import OneTotalLook, Item
 from pydantic import parse_obj_as
 
 
 
+# ---------- helpers ----------
+def _get_cerebras_api_key() -> Optional[str]:
+    return os.getenv("API_KEY_CEREBRAS") or os.getenv("CEREBRAS_API_KEY")
+
+def _extract_message_content(response, attempt: int) -> str:
+    if not response or not getattr(response, "choices", None):
+        raise ValueError(f"API returned no choices (attempt {attempt})")
+    message = response.choices[0].message
+    if not message:
+        raise ValueError(f"API returned no message (attempt {attempt})")
+    content = message.content
+    if content is None:
+        raise ValueError(f"API returned None content (attempt {attempt})")
+    if not isinstance(content, str):
+        content = str(content)
+    content = content.strip()
+    if not content:
+        raise ValueError(f"API returned empty content (attempt {attempt})")
+    return content
+
 # ---------- LLM call ----------
-def generate_look(user_text: str, model: str = "gpt-4.1-mini") -> OneTotalLook:
+def generate_look(user_text: str, model: str = "zai-glm-4.7", max_retries: int = 2) -> OneTotalLook:
     """
     Запрашивает LLM и возвращает структурированный OneTotalLook.
-    Ключ API можно передать напрямую или через переменную окружения OPENAI_API_KEY.
+    Использует Cerebras API.
     """
     
     load_dotenv()
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    client = openai.OpenAI(api_key=api_key)
+    api_key = _get_cerebras_api_key()
+    if not api_key:
+        raise ValueError("API_KEY_CEREBRAS/CEREBRAS_API_KEY not found in environment variables")
+    
+    client = cerebras.Cerebras(api_key=api_key)
+    
     messages = [
         {"role": "system", "content": prompts.TOTAL_CREATIONLOOK_PROMPT.format(request=user_text)},
     ]
 
-    response = client.beta.chat.completions.parse(
-        model=model,
-        messages=messages,
-        temperature=0.0,
-        max_completion_tokens=1000,
-        response_format=OneTotalLook,
-    )
+    import json
+    
+    for attempt in range(max_retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.0,
+                max_tokens=1000,
+            )
 
-    # .parse() возвращает специальный объект, сама модель в .choices[0].message.parsed
-    look = response.choices[0].message.parsed
-    look = parse_obj_as(OneTotalLook, look)
-    return look
+            content = _extract_message_content(response, attempt + 1)
+            
+            # Try to extract JSON from response
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+            
+            look_dict = json.loads(content)
+            look = OneTotalLook(**look_dict)
+            return look
+            
+        except (ValueError, json.JSONDecodeError) as e:
+            print(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt < max_retries:
+                print(f"Retrying...")
+                continue
+            else:
+                # Fallback to a default look
+                print("All retries failed, using fallback look")
+                return _get_fallback_look(user_text)
+        except Exception as e:
+            print(f"Unexpected error on attempt {attempt + 1}: {str(e)}")
+            if attempt < max_retries:
+                print(f"Retrying...")
+                continue
+            else:
+                # Fallback to a default look
+                print("All retries failed, using fallback look")
+                return _get_fallback_look(user_text)
+
+
+def _get_fallback_look(user_text: str) -> OneTotalLook:
+    """
+    Returns a fallback OneTotalLook when API fails.
+    """
+    return OneTotalLook(
+        sex="unisex",
+        top=["shirt"],
+        bottom=["pants"],
+        shoes=["sneakers"],
+        full=[],
+        bag=[],
+        outerwear=[],
+        accessories=[]
+    )
 
 
 # ---------- DF utilities ----------
@@ -88,6 +157,12 @@ def match_item(df: pd.DataFrame, itm: Item) -> pd.DataFrame:
         return df_f
 
 
+def _normalize_items(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
 
 def filter_dataset(
     df: pd.DataFrame,
@@ -96,29 +171,42 @@ def filter_dataset(
     use_unisex_choice: bool = True
 ) -> Dict[str, pd.DataFrame]:
     """
-    Возвращает словарь { '<part>_<category>_<idx>': DataFrame }.
+    Returns { '<part>_<category>_<idx>': DataFrame }.
     """
 
-    # 1️⃣ базовый срез по полу
-    if look.sex and use_unisex_choice:
-        df_base = df[df["gender"].str.lower().isin({"unisex", look.sex.lower()})]
-    elif look.sex:
-        df_base = df[df["gender"].str.lower().isin({look.sex})]
+    sex_value = (look.sex or "").strip().lower()
+    if sex_value in {"f", "female"}:
+        sex_value = "female"
+    elif sex_value in {"m", "male"}:
+        sex_value = "male"
+    elif sex_value in {"u", "unisex"}:
+        sex_value = "unisex"
+
+    if sex_value and use_unisex_choice:
+        df_base = df[df["gender"].str.lower().isin({"unisex", sex_value})]
+    elif sex_value:
+        df_base = df[df["gender"].str.lower().isin({sex_value})]
     else:
         df_base = df.copy()
 
     results: Dict[str, pd.DataFrame] = {}
+    part_fields = ("top", "bottom", "full", "shoes", "bag", "outerwear", "accessories")
 
-    # 2️⃣ обходим все поля модели, кроме служебных
-    for part_name in (f for f in OneTotalLook.model_fields if f not in {"sex", "season"}):
-        items = getattr(look, part_name)
-        if not items:                      # None или пустой список
+    for part_name in part_fields:
+        items = _normalize_items(getattr(look, part_name, None))
+        if not items:
             continue
 
-        # 3️⃣ обрабатываем каждый Item отдельно
         for idx, itm in enumerate(items):
-            if not isinstance(itm, Item):              # на всякий случай
+            if isinstance(itm, str):
+                if not itm.strip():
+                    continue
+                itm = Item(category=itm)
+            elif not isinstance(itm, Item):
                 itm = Item.model_validate(itm)
+
+            if not itm.category:
+                continue
 
             sub = match_item(df_base, itm)
             if sub is not None and not sub.empty:

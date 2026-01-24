@@ -13,8 +13,16 @@ import streamlit as st
 import pandas as pd
 import ast
 import numpy as np
+import streamlit.components.v1 as components
 # --- ваш бизнес-код ---
 from stylist_core import generate_look, filter_dataset
+from runway_director import (
+    build_runway_scene,
+    parse_director_command,
+    generate_runway_html,
+    get_available_presets,
+    get_preset_description
+)
 
 # ──────────────────────────────────────────────────────────────
 # Константы (можно переопределить через переменные окружения)
@@ -37,7 +45,20 @@ else:
 # ──────────────────────────────────────────────────────────────
 
 st.set_page_config(page_title="Fashion Look Finder", layout="wide")
-st.title("👗 Total-Look Stylist")
+
+# Initialize session state for runway mode
+if 'runway_scene' not in st.session_state:
+    st.session_state.runway_scene = None
+if 'selected_look_items' not in st.session_state:
+    st.session_state.selected_look_items = []
+if 'runway_preset' not in st.session_state:
+    st.session_state.runway_preset = "minimal"
+
+# Create tabs
+tab1, tab2 = st.tabs(["👗 Look Generator", "🎬 Runway Director"])
+
+with tab1:
+    st.title("👗 Total-Look Stylist")
 
 def to_list(val):
     """
@@ -66,7 +87,7 @@ user_query = st.text_area(
 
 
 model_choice = st.sidebar.selectbox(
-    "LLM-модель", [ "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"], index=0
+    "LLM-модель", ["zai-glm-4.7"], index=0
 )
 use_unisex_choice = st.sidebar.selectbox(
     "Можно ли использовать в образе вещи, помеченные как Unisex?", [ "Можно", "Не использовать"], index=0
@@ -121,14 +142,143 @@ if st.button("Сгенерировать лук"):
         key="look_choice",
     )
     comment = st.text_input("Комментарий", key="look_comment")
-    if st.button("Сохранить отзыв", key="save_feedback"):
-        new_row = {
-            "user_query": user_query,
-            "selected_look": selected,
-            "comment": comment,
-        }
-        users_feedback = pd.concat(
-            [users_feedback, pd.DataFrame([new_row])], ignore_index=True
-        )
-        users_feedback.to_csv(FEEDBACK_PATH, index=False)
-        st.success("Спасибо за отзыв!")
+    
+    col_save, col_runway = st.columns(2)
+    with col_save:
+        if st.button("Сохранить отзыв", key="save_feedback"):
+            new_row = {
+                "user_query": user_query,
+                "selected_look": selected,
+                "comment": comment,
+            }
+            users_feedback = pd.concat(
+                [users_feedback, pd.DataFrame([new_row])], ignore_index=True
+            )
+            users_feedback.to_csv(FEEDBACK_PATH, index=False)
+            st.success("Спасибо за отзыв!")
+    
+    with col_runway:
+        if st.button("🎬 Показать на подиуме", key="go_to_runway"):
+            # Store selected look items for runway
+            selected_idx = 0 if selected == "Look 1" else 1
+            selected_items = []
+            for part, df_part in results.items():
+                if df_part is not None and len(df_part) > selected_idx:
+                    row = df_part.iloc[selected_idx].to_dict()
+                    row['category'] = part
+                    selected_items.append(row)
+            
+            st.session_state.selected_look_items = selected_items
+            st.success("Образ сохранён! Перейдите на вкладку Runway Director")
+
+# Runway Director Tab
+with tab2:
+    st.title("🎬 AI Runway Director")
+    st.markdown("""
+    Превратите выбранный образ в кинематографичное шоу на подиуме. 
+    Управляйте светом, камерой и атмосферой с помощью текстовых команд.
+    """)
+    
+    # Check if we have items to display
+    if not st.session_state.selected_look_items:
+        st.info("👈 Сначала сгенерируйте образ на вкладке Look Generator и выберите понравившийся вариант")
+    else:
+        # Scene preset selection
+        st.subheader("🎨 Настройки сцены")
+        
+        col_preset, col_director = st.columns([1, 2])
+        
+        with col_preset:
+            st.write("**Выберите пресет:**")
+            presets = get_available_presets()
+            selected_preset = st.selectbox(
+                "Стиль сцены",
+                presets,
+                index=presets.index(st.session_state.runway_preset),
+                format_func=lambda x: f"{x.replace('_', ' ').title()}"
+            )
+            
+            # Show preset description
+            desc = get_preset_description(selected_preset)
+            if desc:
+                st.caption(desc)
+            
+            if st.button("Применить пресет", key="apply_preset"):
+                st.session_state.runway_preset = selected_preset
+                st.rerun()
+        
+        with col_director:
+            st.write("**Режиссёрская команда:**")
+            director_command = st.text_area(
+                "Опишите, как должен выглядеть показ",
+                placeholder='Примеры:\n- "Сделай показ как Paris Fashion Week, минимализм, мягкий свет"\n- "Теперь cyberpunk Tokyo, дождь, неон, камера ближе"\n- "Сделай редакционную обложку 90s: крупный шрифт, белый фон"',
+                height=100,
+                key="director_command"
+            )
+            
+            if st.button("🎬 Применить команду", key="apply_director"):
+                if director_command.strip():
+                    with st.spinner("Режиссёр настраивает сцену..."):
+                        # Parse director command
+                        director_result = parse_director_command(
+                            director_command,
+                            model=model_choice
+                        )
+                        
+                        if director_result:
+                            # Update scene with director command
+                            if st.session_state.runway_scene:
+                                st.session_state.runway_scene.scene = director_result.scene
+                                st.session_state.runway_scene.cover = director_result.cover
+                                st.session_state.runway_scene.transitions = director_result.transitions
+                            st.success("✨ Сцена обновлена!")
+                        else:
+                            st.warning("Не удалось распознать команду. Используется текущий пресет.")
+        
+        # Build and display runway scene
+        st.subheader("🌟 Подиум")
+        
+        with st.spinner("Подготовка сцены..."):
+            # Build runway scene
+            scene = build_runway_scene(
+                items_data=st.session_state.selected_look_items,
+                preset=st.session_state.runway_preset,
+                cover_title="VOGUE",
+                cover_subtitle="Collection 2026",
+                cover_badges=["Total Look", "AI Styled"]
+            )
+            
+            st.session_state.runway_scene = scene
+            
+            # Generate HTML
+            html = generate_runway_html(scene)
+            
+            # Display runway
+            components.html(
+                html,
+                height=650,
+                scrolling=False
+            )
+        
+        # Scene info
+        st.subheader("📋 Информация о сцене")
+        col_info1, col_info2, col_info3 = st.columns(3)
+        
+        with col_info1:
+            st.metric("Тема", scene.scene.theme)
+        with col_info2:
+            st.metric("Освещение", scene.scene.lighting)
+        with col_info3:
+            st.metric("Атмосфера", scene.scene.atmosphere)
+        
+        # Cover info
+        st.write("**Обложка:**")
+        st.write(f"- Заголовок: {scene.cover.title}")
+        st.write(f"- Подзаголовок: {scene.cover.subtitle}")
+        if scene.cover.badges:
+            st.write(f"- Бейджи: {', '.join(scene.cover.badges)}")
+        
+        # Items info
+        st.write(f"**Товары на подиуме:** {len(scene.items)}")
+        for item in scene.items:
+            st.write(f"- {item.category}: {item.name}")
