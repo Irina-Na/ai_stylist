@@ -329,23 +329,51 @@
             });
             items = [];
             
-            // Position items along runway
-            const positions = [
-                { x: -2, z: 6 },
-                { x: 2, z: 6 },
-                { x: -2, z: 2 },
-                { x: 2, z: 2 },
-                { x: -2, z: -2 },
-                { x: 2, z: -2 },
-                { x: 0, z: -6 }
-            ];
-            
             const textureLoader = new THREE.TextureLoader();
-            
-            itemData.forEach((item, index) => {
-                if (index >= positions.length) return;
-                
-                const pos = positions[index];
+
+            // Group items by look_label to make separate rows
+            const grouped = {};
+            itemData.forEach(item => {
+                const label = item.look_label || 'Look';
+                if (!grouped[label]) grouped[label] = [];
+                grouped[label].push(item);
+            });
+
+            const rowZ = {
+                'Look 1': 4,
+                'Look 2': -4
+            };
+
+            const orderedLabels = Object.keys(grouped);
+            let orderedItems = [];
+            orderedLabels.forEach(label => {
+                orderedItems = orderedItems.concat(grouped[label]);
+            });
+
+            const positionsByItemId = new Map();
+            orderedLabels.forEach(label => {
+                const rowItems = grouped[label];
+                const z = rowZ[label] !== undefined ? rowZ[label] : 0;
+                const count = rowItems.length;
+                const xPositions = [];
+                if (count === 1) {
+                    xPositions.push(0);
+                } else {
+                    const span = 6;
+                    const step = span / (count - 1);
+                    for (let i = 0; i < count; i++) {
+                        xPositions.push(-span / 2 + step * i);
+                    }
+                }
+                rowItems.forEach((item, idx) => {
+                    const key = item.id || `${label}-${idx}`;
+                    positionsByItemId.set(key, { x: xPositions[idx], z });
+                });
+            });
+
+            orderedItems.forEach((item, index) => {
+                const key = item.id || `${item.look_label || 'Look'}-${index}`;
+                const pos = positionsByItemId.get(key) || { x: 0, z: 0 };
                 
                 // Create 3D representation (plane with texture)
                 const geometry = new THREE.PlaneGeometry(2, 2);
@@ -394,12 +422,16 @@
             card.id = `card-${item.id || index}`;
             
             const img = document.createElement('img');
-            img.src = item.image_url || '';
+            img.src = item.image_data_uri || item.image_url || '';
             img.alt = item.name || 'Item';
             
             const label = document.createElement('div');
             label.className = 'item-card-label';
-            label.textContent = item.category || 'Item';
+            if (item.look_label) {
+                label.textContent = `${item.look_label} · ${item.category || 'Item'}`;
+            } else {
+                label.textContent = item.category || 'Item';
+            }
             
             card.appendChild(img);
             card.appendChild(label);
