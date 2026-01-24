@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Runway Director</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #runway-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            overflow: hidden;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Vogue-style cover overlay */
+        #cover-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .cover-title {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
+            font-family: 'Times New Roman', serif;
+        }
+        
+        .cover-subtitle {
+            position: absolute;
+            top: 90px;
+            left: 30px;
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .cover-badges {
+            position: absolute;
+            top: 130px;
+            left: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .badge {
+            padding: 5px 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Item cards on runway */
+        .item-card {
+            position: absolute;
+            width: 120px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        
+        .item-card:hover {
+            transform: scale(1.1);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 0 30px rgba(255,255,255,0.3);
+        }
+        
+        .item-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        
+        .item-card-label {
+            padding: 8px;
+            color: white;
+            font-size: 11px;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        
+        /* Scene info panel */
+        #scene-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        #scene-info h4 {
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #scene-info p {
+            margin: 4px 0;
+            opacity: 0.8;
+        }
+        
+        /* Loading indicator */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="runway-container">
+        <div id="canvas-container"></div>
+        <div id="cover-overlay">
+            <div class="cover-title" id="cover-title">VOGUE</div>
+            <div class="cover-subtitle" id="cover-subtitle">Collection 2026</div>
+            <div class="cover-badges" id="cover-badges"></div>
+        </div>
+        <div id="scene-info">
+            <h4>Scene Settings</h4>
+            <p id="scene-theme">Theme: Minimal</p>
+            <p id="scene-lighting">Lighting: Soft</p>
+            <p id="scene-atmosphere">Atmosphere: Clean</p>
+        </div>
+        <div id="loading">Loading Runway...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer;
+        let runway, particles, spotlights = [];
+        let items = [];
+        let sceneConfig = {
+            theme: 'minimal',
+            lighting: 'soft',
+            atmosphere: 'clean',
+            fogDensity: 0.02,
+            fogColor: 0x000000,
+            backgroundColor: 0x111111,
+            spotlightIntensity: 1.0,
+            spotlightColor: 0xffffff,
+            particleCount: 500,
+            particleSpeed: 0.001,
+            cameraDistance: 15,
+            cameraHeight: 5
+        };
+
+        // Initialize scene
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(sceneConfig.backgroundColor);
+            scene.fog = new THREE.FogExp2(sceneConfig.fogColor, sceneConfig.fogDensity);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, sceneConfig.cameraHeight, sceneConfig.cameraDistance);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Create runway
+            createRunway();
+            
+            // Create lighting
+            createLighting();
+            
+            // Create particles
+            createParticles();
+            
+            // Hide loading
+            document.getElementById('loading').style.display = 'none';
+            
+            // Start animation
+            animate();
+            
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createRunway() {
+            // Main runway platform
+            const runwayGeometry = new THREE.BoxGeometry(8, 0.2, 20);
+            const runwayMaterial = new THREE.MeshStandardMaterial({
+                color: 0x222222,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            runway = new THREE.Mesh(runwayGeometry, runwayMaterial);
+            runway.position.y = -0.1;
+            runway.receiveShadow = true;
+            scene.add(runway);
+            
+            // Runway stripes
+            const stripeGeometry = new THREE.BoxGeometry(0.1, 0.21, 20);
+            const stripeMaterial = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            
+            for (let i = -3; i <= 3; i += 2) {
+                const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
+                stripe.position.set(i, 0, 0);
+                stripe.receiveShadow = true;
+                scene.add(stripe);
+            }
+        }
+
+        function createLighting() {
+            // Ambient light
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            // Spotlights
+            const spotlightPositions = [
+                { x: -5, y: 8, z: 5 },
+                { x: 5, y: 8, z: 5 },
+                { x: -5, y: 8, z: -5 },
+                { x: 5, y: 8, z: -5 }
+            ];
+            
+            spotlightPositions.forEach(pos => {
+                const spotlight = new THREE.SpotLight(
+                    sceneConfig.spotlightColor,
+                    sceneConfig.spotlightIntensity
+                );
+                spotlight.position.set(pos.x, pos.y, pos.z);
+                spotlight.angle = Math.PI / 6;
+                spotlight.penumbra = 0.5;
+                spotlight.castShadow = true;
+                spotlight.shadow.mapSize.width = 1024;
+                spotlight.shadow.mapSize.height = 1024;
+                scene.add(spotlight);
+                spotlights.push(spotlight);
+            });
+            
+            // Rim light
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            rimLight.position.set(0, 5, -10);
+            scene.add(rimLight);
+        }
+
+        function createParticles() {
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(sceneConfig.particleCount * 3);
+            
+            for (let i = 0; i < sceneConfig.particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 20;
+                positions[i + 1] = Math.random() * 10;
+                positions[i + 2] = (Math.random() - 0.5) * 20;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+        }
+
+        function addItemsToRunway(itemData) {
+            // Clear existing items
+            items.forEach(item => {
+                scene.remove(item.mesh);
+                const card = document.getElementById(`card-${item.id}`);
+                if (card) card.remove();
+            });
+            items = [];
+            
+            // Position items along runway
+            const positions = [
+                { x: -2, z: 6 },
+                { x: 2, z: 6 },
+                { x: -2, z: 2 },
+                { x: 2, z: 2 },
+                { x: -2, z: -2 },
+                { x: 2, z: -2 },
+                { x: 0, z: -6 }
+            ];
+            
+            itemData.forEach((item, index) => {
+                if (index >= positions.length) return;
+                
+                const pos = positions[index];
+                
+                // Create 3D representation (plane with texture)
+                const geometry = new THREE.PlaneGeometry(2, 2);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(pos.x, 1.5, pos.z);
+                mesh.rotation.y = Math.PI / 4;
+                scene.add(mesh);
+                
+                items.push({
+                    id: item.id || index,
+                    mesh: mesh,
+                    data: item
+                });
+                
+                // Create HTML card overlay
+                createItemCard(item, pos, index);
+            });
+        }
+
+        function createItemCard(item, pos, index) {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.id = `card-${item.id || index}`;
+            
+            const img = document.createElement('img');
+            img.src = item.image_url || '';
+            img.alt = item.name || 'Item';
+            
+            const label = document.createElement('div');
+            label.className = 'item-card-label';
+            label.textContent = item.category || 'Item';
+            
+            card.appendChild(img);
+            card.appendChild(label);
+            
+            // Position card based on 3D position
+            updateCardPosition(card, pos);
+            
+            document.getElementById('runway-container').appendChild(card);
+        }
+
+        function updateCardPosition(card, pos) {
+            const vector = new THREE.Vector3(pos.x, 1.5, pos.z);
+            vector.project(camera);
+            
+            const x = (vector.x * 0.5 + 0.5) * document.getElementById('canvas-container').clientWidth;
+            const y = (-(vector.y * 0.5) + 0.5) * document.getElementById('canvas-container').clientHeight;
+            
+            card.style.left = `${x - 60}px`;
+            card.style.top = `${y - 60}px`;
+        }
+
+        function updateScene(config) {
+            // Update scene configuration
+            Object.assign(sceneConfig, config);
+            
+            // Update background
+            scene.background = new THREE.Color(sceneConfig.backgroundColor);
+            scene.fog.color = new THREE.Color(sceneConfig.fogColor);
+            scene.fog.density = sceneConfig.fogDensity;
+            
+            // Update spotlights
+            spotlights.forEach(spotlight => {
+                spotlight.intensity = sceneConfig.spotlightIntensity;
+                spotlight.color = new THREE.Color(sceneConfig.spotlightColor);
+            });
+            
+            // Update particles
+            if (particles) {
+                scene.remove(particles);
+                createParticles();
+            }
+            
+            // Update camera
+            camera.position.set(0, sceneConfig.cameraHeight, sceneConfig.cameraDistance);
+            camera.lookAt(0, 0, 0);
+            
+            // Update scene info
+            document.getElementById('scene-theme').textContent = `Theme: ${sceneConfig.theme}`;
+            document.getElementById('scene-lighting').textContent = `Lighting: ${sceneConfig.lighting}`;
+            document.getElementById('scene-atmosphere').textContent = `Atmosphere: ${sceneConfig.atmosphere}`;
+        }
+
+        function updateCover(title, subtitle, badges) {
+            document.getElementById('cover-title').textContent = title || 'VOGUE';
+            document.getElementById('cover-subtitle').textContent = subtitle || 'Collection 2026';
+            
+            const badgesContainer = document.getElementById('cover-badges');
+            badgesContainer.innerHTML = '';
+            
+            if (badges && badges.length > 0) {
+                badges.forEach(badge => {
+                    const badgeEl = document.createElement('div');
+                    badgeEl.className = 'badge';
+                    badgeEl.textContent = badge;
+                    badgesContainer.appendChild(badgeEl);
+                });
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate particles
+            if (particles) {
+                particles.rotation.y += sceneConfig.particleSpeed;
+            }
+            
+            // Animate runway items
+            items.forEach((item, index) => {
+                item.mesh.rotation.y = Math.PI / 4 + Math.sin(Date.now() * 0.001 + index) * 0.1;
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+</html>
