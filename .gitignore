@@ -50,3 +50,9 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Data
+data/**
+*.sqlite3   
+**.sql
+.coding*

@@ -1,0 +1,14 @@
+# UI & Web server
+streamlit==1.35.0        # stable Streamlit release
+
+# LLM client
+openai>=1.24.1           # v1-style SDK with .beta.chat API
+python-dotenv==1.1.0
+# Data handling
+pandas>=2.2.0            # DataFrame operations
+numpy>=1.26.0            # pandas dependency, pinned for reproducibility
+pyarrow>=16.1.0          # parquet/feather I/O support
+
+# Data models & validation
+pydantic>=2.7.0          # BaseModel, Field, validation helpers
+langfuse==3.3.0
