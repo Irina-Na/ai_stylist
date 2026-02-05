@@ -141,7 +141,7 @@ Parses natural language director command into structured configuration.
 ```python
 command = parse_director_command(
     command="Make it cyberpunk Tokyo",
-    model="gpt-4.1-mini"
+    model="zai-glm-4.7"
 )
 ```
 
@@ -165,7 +165,7 @@ html = generate_runway_html(scene, widget_path="ui/runway_widget.html")
 - Scene optimized for smooth 60fps animation
 
 ### LLM Calls
-- Director commands use lightweight models (gpt-4.1-mini recommended)
+- Director commands use lightweight models (configured in `runway_director.py`)
 - JSON-only responses for fast parsing
 - Fallback to presets if parsing fails
 
@@ -182,7 +182,7 @@ html = generate_runway_html(scene, widget_path="ui/runway_widget.html")
 - Check browser console for JavaScript errors
 
 ### Director Commands Not Working
-- Verify OPENAI_API_KEY is set
+- Verify `API_KEY_CEREBRAS` (or `CEREBRAS_API_KEY`) is set
 - Check if the model is available
 - Try simpler commands first
 

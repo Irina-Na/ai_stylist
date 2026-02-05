@@ -1,0 +1,13 @@
+services:
+  fashion-stylist:
+    build: .
+    ports:
+      - "8510:8510"
+    env_file:
+      - .env
+    environment:
+      # If you mount your own catalog into ./data, point the app to it:
+      # DATA_PATH: /app/data/your_catalog.csv
+      DATA_PATH: /app/data/clothes_enriched_new_cat1_only.csv
+    volumes:
+      - ./data:/app/data

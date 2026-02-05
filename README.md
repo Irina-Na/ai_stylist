@@ -42,9 +42,27 @@ requirements and searches your product catalog for matching items.
 Build and run:
 ```bash
 docker build -t fashion-stylist:latest .
-docker run --rm -p 8510:8510 -e API_KEY_CEREBRAS=your_key_here `
-  -v "$PWD\\data\\clothes_enriched_new_cat1_only.csv":/data/clothes_enriched_new_cat1_only.csv `
+
+# Option A: pass env vars directly
+docker run --rm -p 8510:8510 `
+  -e API_KEY_CEREBRAS=your_key_here `
   fashion-stylist:latest
+
+# Option B (recommended): load secrets from .env (not baked into image)
+docker run --rm -p 8510:8510 --env-file .env fashion-stylist:latest
+
+# Using your own catalog file:
+docker run --rm -p 8510:8510 --env-file .env `
+  -e DATA_PATH=/app/data/catalog.csv `
+  -v "$PWD\\data\\catalog.csv":/app/data/catalog.csv `
+  fashion-stylist:latest
+```
+Open `http://localhost:8510`.
+
+### Docker Compose
+If you prefer compose (recommended), edit `docker-compose.yml` (DATA_PATH + volume) and run:
+```bash
+docker compose up --build
 ```
 Open `http://localhost:8510`.
 

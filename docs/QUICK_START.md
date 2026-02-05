@@ -15,10 +15,10 @@ pip install -r requirements.txt
 ## Running the Application
 
 ```bash
-streamlit run app.py
+streamlit run app.py --server.port 8510
 ```
 
-The application will be available at `http://localhost:8501`
+The application will be available at `http://localhost:8510` if you run it with `--server.port 8510` (see README).
 
 ## Basic Workflow
 
@@ -100,7 +100,7 @@ Click **"🎬 Применить команду"** to apply changes.
 - Check browser console for errors
 
 ### Director Commands Not Working
-- Verify OPENAI_API_KEY is set in `.env` file
+- Verify `API_KEY_CEREBRAS` (or `CEREBRAS_API_KEY`) is set in `.env` (or in your environment)
 - Try simpler commands first
 - Check if the selected model is available
 
@@ -120,7 +120,7 @@ Click **"🎬 Применить команду"** to apply changes.
 ## Performance Tips
 
 - Images are automatically resized to 400x400px
-- Use lightweight models (gpt-4.1-mini) for director commands
+- Use lightweight models for director commands (see `runway_director.py` default)
 - Close other browser tabs for better performance
 
 ## Getting Help
