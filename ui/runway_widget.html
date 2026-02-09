@@ -5,171 +5,199 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Runway Director</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Instrument+Serif:opsz@8..144&display=swap');
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            overflow: hidden;
-            background: #000;
+            font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f3ee;
+            color: #1b1b1b;
         }
-        
+
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            padding: 20px 28px;
+            border-bottom: 1px solid #e3ded5;
+            background: #f6f3ee;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        #cover-title {
+            font-family: 'Instrument Serif', 'Times New Roman', serif;
+            font-size: 26px;
+            letter-spacing: 1px;
+        }
+
+        #cover-subtitle {
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #5b554f;
+        }
+
+        .prompt {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            max-width: 520px;
+        }
+
+        .prompt input {
+            flex: 1;
+            padding: 12px 14px;
+            border: 1px solid #ded7cd;
+            border-radius: 10px;
+            background: #ffffff;
+            font-size: 14px;
+        }
+
+        .prompt input:focus {
+            outline: none;
+            border-color: #111111;
+        }
+
+        .prompt button {
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid #111111;
+            background: #111111;
+            color: #f6f3ee;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .prompt button:hover {
+            background: #2b2b2b;
+        }
+
         #runway-container {
             position: relative;
             width: 100%;
             height: 600px;
             overflow: hidden;
+            background: linear-gradient(180deg, #f6f3ee 0%, #efe9e0 100%);
         }
-        
+
         #canvas-container {
             width: 100%;
             height: 100%;
         }
-        
-        /* Vogue-style cover overlay */
-        #cover-overlay {
+
+        .look-label {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-        
-        .cover-title {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            font-size: 48px;
-            font-weight: 700;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
-            font-family: 'Times New Roman', serif;
-        }
-        
-        .cover-subtitle {
-            position: absolute;
-            top: 90px;
-            left: 30px;
-            font-size: 18px;
-            color: rgba(255,255,255,0.9);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        
-        .cover-badges {
-            position: absolute;
-            top: 130px;
-            left: 30px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .badge {
-            padding: 5px 15px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
-            color: white;
+            left: 24px;
+            padding: 6px 10px;
             font-size: 12px;
-            text-transform: uppercase;
             letter-spacing: 1px;
-            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            color: #5b554f;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e1dad0;
+            border-radius: 999px;
+            z-index: 5;
         }
-        
-        /* Item cards on runway */
+
+        .look-1 {
+            top: 24px;
+        }
+
+        .look-2 {
+            top: 56px;
+        }
+
         .item-card {
             position: absolute;
-            width: 120px;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 8px;
+            width: 132px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #e1dad0;
+            border-radius: 12px;
             overflow: hidden;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(6px);
         }
-        
+
         .item-card:hover {
-            transform: scale(1.1);
-            border-color: rgba(255,255,255,0.8);
-            box-shadow: 0 0 30px rgba(255,255,255,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
         }
-        
+
         .item-card img {
             width: 100%;
             height: 120px;
             object-fit: cover;
         }
-        
+
         .item-card-label {
             padding: 8px;
-            color: white;
+            color: #1b1b1b;
             font-size: 11px;
-            text-transform: uppercase;
             text-align: center;
             letter-spacing: 1px;
-        }
-        
-        /* Scene info panel */
-        #scene-info {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 15px 20px;
-            border-radius: 10px;
-            color: white;
-            font-size: 12px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        #scene-info h4 {
-            margin-bottom: 8px;
-            font-size: 14px;
             text-transform: uppercase;
-            letter-spacing: 2px;
         }
-        
-        #scene-info p {
-            margin: 4px 0;
-            opacity: 0.8;
-        }
-        
-        /* Loading indicator */
+
         #loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            font-size: 18px;
+            color: #1b1b1b;
+            font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 2px;
+        }
+
+        @media (max-width: 720px) {
+            #topbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .prompt {
+                max-width: 100%;
+            }
+
+            #runway-container {
+                height: 520px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="runway-container">
-        <div id="canvas-container"></div>
-        <div id="cover-overlay">
-            <div class="cover-title" id="cover-title">VOGUE</div>
-            <div class="cover-subtitle" id="cover-subtitle">Collection 2026</div>
-            <div class="cover-badges" id="cover-badges"></div>
-        </div>
-        <div id="scene-info">
-            <h4>Scene Settings</h4>
-            <p id="scene-theme">Theme: Minimal</p>
-            <p id="scene-lighting">Lighting: Soft</p>
-            <p id="scene-atmosphere">Atmosphere: Clean</p>
-        </div>
-        <div id="loading">Loading Runway...</div>
+    <div id="app">
+        <header id="topbar">
+            <div class="brand">
+                <div id="cover-title">Runway</div>
+                <div id="cover-subtitle">Try on your new outfit</div>
+            </div>
+            
+        </header>
+        <main id="runway-container">
+            <div id="canvas-container"></div>
+            <div class="look-label look-1">Look 1</div>
+            <div class="look-label look-2">Look 2</div>
+            <div id="loading">Loading runway...</div>
+        </main>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -182,13 +210,13 @@
             theme: 'minimal',
             lighting: 'soft',
             atmosphere: 'clean',
-            fogDensity: 0.02,
-            fogColor: 0x000000,
-            backgroundColor: 0x111111,
-            spotlightIntensity: 1.0,
+            fogDensity: 0.01,
+            fogColor: 0xf3ede4,
+            backgroundColor: 0xf6f3ee,
+            spotlightIntensity: 0.6,
             spotlightColor: 0xffffff,
-            particleCount: 500,
-            particleSpeed: 0.001,
+            particleCount: 0,
+            particleSpeed: 0.0,
             cameraDistance: 15,
             cameraHeight: 5
         };
@@ -221,9 +249,6 @@
             // Create lighting
             createLighting();
             
-            // Create particles
-            createParticles();
-            
             // Hide loading
             document.getElementById('loading').style.display = 'none';
             
@@ -238,41 +263,24 @@
             // Main runway platform
             const runwayGeometry = new THREE.BoxGeometry(8, 0.2, 20);
             const runwayMaterial = new THREE.MeshStandardMaterial({
-                color: 0x222222,
-                metalness: 0.8,
-                roughness: 0.2
+                color: 0xe2ddd4,
+                metalness: 0.2,
+                roughness: 0.6
             });
             runway = new THREE.Mesh(runwayGeometry, runwayMaterial);
             runway.position.y = -0.1;
             runway.receiveShadow = true;
             scene.add(runway);
-            
-            // Runway stripes
-            const stripeGeometry = new THREE.BoxGeometry(0.1, 0.21, 20);
-            const stripeMaterial = new THREE.MeshStandardMaterial({
-                color: 0x444444,
-                metalness: 0.9,
-                roughness: 0.1
-            });
-            
-            for (let i = -3; i <= 3; i += 2) {
-                const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
-                stripe.position.set(i, 0, 0);
-                stripe.receiveShadow = true;
-                scene.add(stripe);
-            }
         }
 
         function createLighting() {
             // Ambient light
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
             // Spotlights
             const spotlightPositions = [
                 { x: -5, y: 8, z: 5 },
-                { x: 5, y: 8, z: 5 },
-                { x: -5, y: 8, z: -5 },
                 { x: 5, y: 8, z: -5 }
             ];
             
@@ -283,7 +291,7 @@
                 );
                 spotlight.position.set(pos.x, pos.y, pos.z);
                 spotlight.angle = Math.PI / 6;
-                spotlight.penumbra = 0.5;
+                spotlight.penumbra = 0.7;
                 spotlight.castShadow = true;
                 spotlight.shadow.mapSize.width = 1024;
                 spotlight.shadow.mapSize.height = 1024;
@@ -344,6 +352,11 @@
                 'Look 2': -4
             };
 
+            const rowX = {
+                'Look 1': -2.5,
+                'Look 2': 2.5
+            };
+
             const orderedLabels = Object.keys(grouped);
             let orderedItems = [];
             orderedLabels.forEach(label => {
@@ -357,7 +370,7 @@
                 const count = rowItems.length;
                 const xPositions = [];
                 if (count === 1) {
-                    xPositions.push(0);
+                    xPositions.push(rowX[label] !== undefined ? rowX[label] : 0);
                 } else {
                     const span = 6;
                     const step = span / (count - 1);
@@ -408,7 +421,8 @@
                 items.push({
                     id: item.id || index,
                     mesh: mesh,
-                    data: item
+                    data: item,
+                    pos: pos
                 });
                 
                 // Create HTML card overlay
@@ -428,7 +442,7 @@
             const label = document.createElement('div');
             label.className = 'item-card-label';
             if (item.look_label) {
-                label.textContent = `${item.look_label} · ${item.category || 'Item'}`;
+                label.textContent = `${item.look_label} - ${item.category || 'Item'}`;
             } else {
                 label.textContent = item.category || 'Item';
             }
@@ -449,8 +463,10 @@
             const x = (vector.x * 0.5 + 0.5) * document.getElementById('canvas-container').clientWidth;
             const y = (-(vector.y * 0.5) + 0.5) * document.getElementById('canvas-container').clientHeight;
             
-            card.style.left = `${x - 60}px`;
-            card.style.top = `${y - 60}px`;
+            const halfWidth = card.offsetWidth / 2;
+            const halfHeight = card.offsetHeight / 2;
+            card.style.left = `${x - halfWidth}px`;
+            card.style.top = `${y - halfHeight}px`;
         }
 
         function updateScene(config) {
@@ -498,49 +514,33 @@
                 camera.lookAt(0, 0, 0);
             }
             
-            // Update scene info
-            if (config.theme) {
-                document.getElementById('scene-theme').textContent = `Theme: ${config.theme}`;
-            }
-            if (config.lighting) {
-                document.getElementById('scene-lighting').textContent = `Lighting: ${config.lighting}`;
-            }
-            if (config.atmosphere) {
-                document.getElementById('scene-atmosphere').textContent = `Atmosphere: ${config.atmosphere}`;
-            }
         }
 
         function updateCover(title, subtitle, badges) {
-            document.getElementById('cover-title').textContent = title || 'VOGUE';
-            document.getElementById('cover-subtitle').textContent = subtitle || 'Collection 2026';
-            
-            const badgesContainer = document.getElementById('cover-badges');
-            badgesContainer.innerHTML = '';
-            
-            if (badges && badges.length > 0) {
-                badges.forEach(badge => {
-                    const badgeEl = document.createElement('div');
-                    badgeEl.className = 'badge';
-                    badgeEl.textContent = badge;
-                    badgesContainer.appendChild(badgeEl);
-                });
-            }
+            document.getElementById('cover-title').textContent = title || 'Runway';
+            document.getElementById('cover-subtitle').textContent = subtitle || 'Two looks, one podium';
         }
 
         function animate() {
             requestAnimationFrame(animate);
             
-            // Rotate particles
-            if (particles) {
-                particles.rotation.y += sceneConfig.particleSpeed;
-            }
-            
             // Animate runway items
             items.forEach((item, index) => {
                 item.mesh.rotation.y = Math.PI / 4 + Math.sin(Date.now() * 0.001 + index) * 0.1;
             });
+
+            updateAllCardPositions();
             
             renderer.render(scene, camera);
+        }
+
+        function updateAllCardPositions() {
+            items.forEach((item) => {
+                const card = document.getElementById(`card-${item.id}`);
+                if (card) {
+                    updateCardPosition(card, item.pos);
+                }
+            });
         }
 
         function onWindowResize() {
@@ -548,6 +548,7 @@
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
+            updateAllCardPositions();
         }
 
         // Initialize on load
@@ -555,3 +556,4 @@
     </script>
 </body>
 </html>
+

@@ -411,23 +411,25 @@ def build_runway_scene(
     # Process items
     runway_items = []
     for idx, item in enumerate(items_data):
-        # Process image
-        image_data_uri = process_item_image(item)
-        
+        # Prefer precomputed data URIs (e.g., collages), otherwise process item images
+        image_data_uri = item.get("image_data_uri") or process_item_image(item)
+
         # Extract category from key if available
-        category = item.get('category', 'Item')
-        
+        category = item.get("category", "Item")
+
+        image_url = item.get("image_external_url") or item.get("image_url")
+
         runway_item = RunwayItem(
             id=str(idx),
-            name=item.get('name', 'Unknown'),
+            name=item.get("name", "Unknown"),
             category=category,
-            image_url=item.get('image_external_url'),
+            image_url=image_url,
             image_data_uri=image_data_uri,
-            price=item.get('price'),
-            brand=item.get('brand'),
-            store_id=item.get('store_id'),
-            good_id=item.get('good_id'),
-            look_label=item.get('look_label')
+            price=item.get("price"),
+            brand=item.get("brand"),
+            store_id=item.get("store_id"),
+            good_id=item.get("good_id"),
+            look_label=item.get("look_label"),
         )
         runway_items.append(runway_item)
     
