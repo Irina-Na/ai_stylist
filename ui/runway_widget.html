@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Runway Director</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Instrument+Serif:opsz@8..144&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+        :root {
+            --bg-0: #0b0f16;
+            --bg-1: #0f1622;
+            --bg-2: #141c2a;
+            --surface: rgba(16, 22, 33, 0.8);
+            --ink-0: #f3f6fb;
+            --ink-1: #b8c2d6;
+            --ink-2: #7f8aa5;
+            --edge: #1f2a3a;
+            --accent: #7cc5ff;
+            --accent-2: #5ef2d6;
+            --font-display: 'Bodoni Moda', 'Playfair Display', serif;
+            --font-ui: 'Space Grotesk', 'IBM Plex Sans', 'Noto Sans', sans-serif;
+        }
 
         * {
             margin: 0;
@@ -14,9 +29,11 @@
         }
 
         body {
-            font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f3ee;
-            color: #1b1b1b;
+            font-family: var(--font-ui);
+            background: radial-gradient(1200px 600px at 15% -10%, rgba(124, 197, 255, 0.14), transparent 60%),
+                        radial-gradient(900px 500px at 90% 0%, rgba(94, 242, 214, 0.12), transparent 58%),
+                        linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-0) 100%);
+            color: var(--ink-0);
         }
 
         #app {
@@ -28,11 +45,12 @@
         #topbar {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
             gap: 24px;
-            padding: 20px 28px;
-            border-bottom: 1px solid #e3ded5;
-            background: #f6f3ee;
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--edge);
+            background: rgba(10, 14, 22, 0.9);
+            backdrop-filter: blur(8px);
         }
 
         .brand {
@@ -42,79 +60,91 @@
         }
 
         #cover-title {
-            font-family: 'Instrument Serif', 'Times New Roman', serif;
-            font-size: 26px;
-            letter-spacing: 1px;
+            font-family: var(--font-display);
+            font-size: 28px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         #cover-subtitle {
-            font-size: 13px;
-            letter-spacing: 1.5px;
+            font-size: 12px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: #5b554f;
+            color: var(--ink-2);
         }
 
-        .prompt {
+        #cover-badges {
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex: 1;
-            max-width: 520px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .prompt input {
-            flex: 1;
-            padding: 12px 14px;
-            border: 1px solid #ded7cd;
-            border-radius: 10px;
-            background: #ffffff;
-            font-size: 14px;
-        }
-
-        .prompt input:focus {
-            outline: none;
-            border-color: #111111;
-        }
-
-        .prompt button {
-            padding: 12px 18px;
-            border-radius: 10px;
-            border: 1px solid #111111;
-            background: #111111;
-            color: #f6f3ee;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .prompt button:hover {
-            background: #2b2b2b;
+        .cover-badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--edge);
+            font-size: 10px;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--ink-1);
+            background: rgba(16, 22, 33, 0.8);
         }
 
         #runway-container {
             position: relative;
             width: 100%;
-            height: 600px;
+            height: 620px;
             overflow: hidden;
-            background: linear-gradient(180deg, #f6f3ee 0%, #efe9e0 100%);
+            background: radial-gradient(800px 320px at 50% 15%, rgba(124, 197, 255, 0.18), transparent 60%),
+                        radial-gradient(700px 240px at 60% 20%, rgba(94, 242, 214, 0.12), transparent 62%),
+                        linear-gradient(180deg, #0b0f16 0%, #0f1622 100%);
+        }
+
+        #runway-container::before,
+        #runway-container::after {
+            content: "";
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(124, 197, 255, 0.25), transparent 70%);
+            filter: blur(12px);
+            top: -120px;
+            z-index: 1;
+            animation: glowPulse 5s ease-in-out infinite;
+        }
+
+        #runway-container::after {
+            left: auto;
+            right: -80px;
+            background: radial-gradient(circle, rgba(94, 242, 214, 0.22), transparent 70%);
+            animation-delay: 1.2s;
+        }
+
+        #runway-container::before {
+            left: -80px;
         }
 
         #canvas-container {
             width: 100%;
             height: 100%;
+            position: relative;
+            z-index: 2;
         }
 
         .look-label {
             position: absolute;
             left: 24px;
-            padding: 6px 10px;
-            font-size: 12px;
-            letter-spacing: 1px;
+            padding: 6px 12px;
+            font-size: 11px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: #5b554f;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #e1dad0;
+            color: var(--ink-1);
+            background: rgba(16, 22, 33, 0.8);
+            border: 1px solid var(--edge);
             border-radius: 999px;
             z-index: 5;
+            backdrop-filter: blur(8px);
         }
 
         .look-1 {
@@ -127,32 +157,36 @@
 
         .item-card {
             position: absolute;
-            width: 170px;
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid #e1dad0;
-            border-radius: 12px;
+            width: 176px;
+            background: rgba(16, 22, 33, 0.88);
+            border: 1px solid var(--edge);
+            border-radius: 16px;
             overflow: hidden;
-            transition: box-shadow 0.2s ease, transform 0.2s ease;
-            backdrop-filter: blur(6px);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 12px 26px rgba(3, 8, 16, 0.5);
+            animation: cardFloat 0.8s ease both;
+            z-index: 4;
         }
 
         .item-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 18px 40px rgba(6, 12, 22, 0.6);
         }
 
         .item-card img {
             width: 100%;
-            height: 150px;
+            height: 160px;
             object-fit: cover;
+            background: #0f141f;
         }
 
         .item-card-label {
-            padding: 8px;
-            color: #1b1b1b;
-            font-size: 11px;
+            padding: 10px 12px;
+            color: var(--ink-1);
+            font-size: 10px;
             text-align: center;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             text-transform: uppercase;
         }
 
@@ -161,20 +195,27 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #1b1b1b;
-            font-size: 14px;
+            color: var(--ink-2);
+            font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            z-index: 3;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes cardFloat {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 720px) {
             #topbar {
                 flex-direction: column;
-                align-items: stretch;
-            }
-
-            .prompt {
-                max-width: 100%;
+                align-items: flex-start;
             }
 
             #runway-container {
@@ -190,6 +231,7 @@
                 <div id="cover-title">Runway</div>
                 <div id="cover-subtitle">Try on your new outfit</div>
             </div>
+            <div id="cover-badges"></div>
             
         </header>
         <main id="runway-container">
@@ -206,19 +248,20 @@
         let scene, camera, renderer;
         let runway, particles, spotlights = [];
         let items = [];
+        const RENDER_3D_LOOKS = false;
         let sceneConfig = {
-            theme: 'minimal',
-            lighting: 'soft',
-            atmosphere: 'clean',
-            fogDensity: 0.01,
-            fogColor: 0xf3ede4,
-            backgroundColor: 0xf6f3ee,
-            spotlightIntensity: 0.6,
-            spotlightColor: 0xffffff,
-            particleCount: 0,
-            particleSpeed: 0.0,
-            cameraDistance: 10,
-            cameraHeight: 4
+            theme: 'gallery_night',
+            lighting: 'cool',
+            atmosphere: 'gallery haze',
+            fogDensity: 0.02,
+            fogColor: 0x0b0f16,
+            backgroundColor: 0x0b0f16,
+            spotlightIntensity: 1.1,
+            spotlightColor: 0x9cd6ff,
+            particleCount: 320,
+            particleSpeed: 0.0008,
+            cameraDistance: 11,
+            cameraHeight: 4.2
         };
 
         // Initialize scene
@@ -263,25 +306,43 @@
             // Main runway platform
             const runwayGeometry = new THREE.BoxGeometry(8, 0.2, 20);
             const runwayMaterial = new THREE.MeshStandardMaterial({
-                color: 0xe2ddd4,
-                metalness: 0.2,
-                roughness: 0.6
+                color: 0x0f1724,
+                metalness: 0.45,
+                roughness: 0.25,
+                emissive: 0x0a101a,
+                emissiveIntensity: 0.7
             });
             runway = new THREE.Mesh(runwayGeometry, runwayMaterial);
             runway.position.y = -0.1;
             runway.receiveShadow = true;
             scene.add(runway);
+
+            const glowGeometry = new THREE.PlaneGeometry(6.2, 18);
+            const glowMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0d1420,
+                emissive: 0x1b2a3d,
+                emissiveIntensity: 0.9,
+                transparent: true,
+                opacity: 0.9
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.rotation.x = -Math.PI / 2;
+            glow.position.y = 0.01;
+            scene.add(glow);
         }
 
         function createLighting() {
             // Ambient light
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0x8aa2c8, 0.35);
             scene.add(ambientLight);
+
+            const hemiLight = new THREE.HemisphereLight(0x9cd6ff, 0x06080b, 0.45);
+            scene.add(hemiLight);
             
             // Spotlights
             const spotlightPositions = [
-                { x: -5, y: 8, z: 5 },
-                { x: 5, y: 8, z: -5 }
+                { x: -5, y: 8, z: 6 },
+                { x: 5, y: 8, z: -6 }
             ];
             
             spotlightPositions.forEach(pos => {
@@ -300,8 +361,8 @@
             });
             
             // Rim light
-            const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
-            rimLight.position.set(0, 5, -10);
+            const rimLight = new THREE.DirectionalLight(0x9cd6ff, 0.35);
+            rimLight.position.set(0, 6, -10);
             scene.add(rimLight);
         }
 
@@ -318,10 +379,10 @@
             particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             
             const particleMaterial = new THREE.PointsMaterial({
-                color: 0xffffff,
-                size: 0.05,
+                color: sceneConfig.spotlightColor || 0x9cd6ff,
+                size: 0.035,
                 transparent: true,
-                opacity: 0.6
+                opacity: 0.55
             });
             
             particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -331,7 +392,9 @@
         function addItemsToRunway(itemData) {
             // Clear existing items
             items.forEach(item => {
-                scene.remove(item.mesh);
+                if (item.mesh) {
+                    scene.remove(item.mesh);
+                }
                 const card = document.getElementById(`card-${item.id}`);
                 if (card) card.remove();
             });
@@ -388,35 +451,38 @@
                 const key = item.id || `${item.look_label || 'Look'}-${index}`;
                 const pos = positionsByItemId.get(key) || { x: 0, z: 0 };
                 
-                // Create 3D representation (plane with texture)
-                const geometry = new THREE.PlaneGeometry(3.2, 3.2);
-                
-                // Use data URI if available, otherwise use URL
-                const imageUrl = item.image_data_uri || item.image_url;
-                
-                let material;
-                if (imageUrl) {
-                    const texture = textureLoader.load(imageUrl);
-                    material = new THREE.MeshBasicMaterial({
-                        map: texture,
-                        transparent: true,
-                        opacity: 0.95,
-                        side: THREE.DoubleSide
-                    });
-                } else {
-                    // Fallback to white material
-                    material = new THREE.MeshBasicMaterial({
-                        color: 0xffffff,
-                        transparent: true,
-                        opacity: 0.9,
-                        side: THREE.DoubleSide
-                    });
+                let mesh = null;
+                if (RENDER_3D_LOOKS) {
+                    // Create 3D representation (plane with texture)
+                    const geometry = new THREE.PlaneGeometry(3.2, 3.2);
+                    
+                    // Use data URI if available, otherwise use URL
+                    const imageUrl = item.image_data_uri || item.image_url;
+                    
+                    let material;
+                    if (imageUrl) {
+                        const texture = textureLoader.load(imageUrl);
+                        material = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            transparent: true,
+                            opacity: 0.95,
+                            side: THREE.DoubleSide
+                        });
+                    } else {
+                        // Fallback to white material
+                        material = new THREE.MeshBasicMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.9,
+                            side: THREE.DoubleSide
+                        });
+                    }
+                    
+                    mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.set(pos.x, 2.0, pos.z);
+                    mesh.rotation.y = Math.PI / 4;
+                    scene.add(mesh);
                 }
-                
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.set(pos.x, 2.0, pos.z);
-                mesh.rotation.y = Math.PI / 4;
-                scene.add(mesh);
                 
                 items.push({
                     id: item.id || index,
@@ -472,34 +538,49 @@
         }
 
         function updateScene(config) {
+            const normalized = {
+                fogDensity: config.fogDensity ?? config.fog_density,
+                fogColor: config.fogColor ?? config.fog_color,
+                backgroundColor: config.backgroundColor ?? config.background_color,
+                spotlightIntensity: config.spotlightIntensity ?? config.spotlight_intensity,
+                spotlightColor: config.spotlightColor ?? config.spotlight_color,
+                particleCount: config.particleCount ?? config.particle_count,
+                particleSpeed: config.particleSpeed ?? config.particle_speed,
+                cameraDistance: config.cameraDistance ?? config.camera_distance,
+                cameraHeight: config.cameraHeight ?? config.camera_height,
+                theme: config.theme,
+                lighting: config.lighting,
+                atmosphere: config.atmosphere
+            };
+
             // Update scene configuration
-            Object.assign(sceneConfig, config);
+            Object.assign(sceneConfig, normalized);
             
             // Update background
-            if (config.backgroundColor) {
-                scene.background = new THREE.Color(config.backgroundColor);
+            if (normalized.backgroundColor) {
+                scene.background = new THREE.Color(normalized.backgroundColor);
             }
-            if (config.fogColor) {
-                scene.fog.color = new THREE.Color(config.fogColor);
+            if (normalized.fogColor) {
+                scene.fog.color = new THREE.Color(normalized.fogColor);
             }
-            if (config.fogDensity !== undefined) {
-                scene.fog.density = config.fogDensity;
+            if (normalized.fogDensity !== undefined) {
+                scene.fog.density = normalized.fogDensity;
             }
             
             // Update spotlights
-            if (config.spotlightIntensity !== undefined || config.spotlightColor) {
+            if (normalized.spotlightIntensity !== undefined || normalized.spotlightColor) {
                 spotlights.forEach(spotlight => {
-                    if (config.spotlightIntensity !== undefined) {
-                        spotlight.intensity = config.spotlightIntensity;
+                    if (normalized.spotlightIntensity !== undefined) {
+                        spotlight.intensity = normalized.spotlightIntensity;
                     }
-                    if (config.spotlightColor) {
-                        spotlight.color = new THREE.Color(config.spotlightColor);
+                    if (normalized.spotlightColor) {
+                        spotlight.color = new THREE.Color(normalized.spotlightColor);
                     }
                 });
             }
             
             // Update particles
-            if (config.particleCount !== undefined || config.particleSpeed !== undefined) {
+            if (normalized.particleCount !== undefined || normalized.particleSpeed !== undefined) {
                 if (particles) {
                     scene.remove(particles);
                 }
@@ -507,11 +588,11 @@
             }
             
             // Update camera
-            if (config.cameraDistance !== undefined || config.cameraHeight !== undefined) {
+            if (normalized.cameraDistance !== undefined || normalized.cameraHeight !== undefined) {
                 camera.position.set(
                     0, 
-                    config.cameraHeight || sceneConfig.cameraHeight, 
-                    config.cameraDistance || sceneConfig.cameraDistance
+                    normalized.cameraHeight || sceneConfig.cameraHeight, 
+                    normalized.cameraDistance || sceneConfig.cameraDistance
                 );
                 camera.lookAt(0, 0, 0);
             }
@@ -521,6 +602,17 @@
         function updateCover(title, subtitle, badges) {
             document.getElementById('cover-title').textContent = title || 'Runway';
             document.getElementById('cover-subtitle').textContent = subtitle || 'Two looks, one podium';
+
+            const badgeWrap = document.getElementById('cover-badges');
+            badgeWrap.innerHTML = '';
+            if (badges && badges.length) {
+                badges.forEach((badge) => {
+                    const el = document.createElement('div');
+                    el.className = 'cover-badge';
+                    el.textContent = badge;
+                    badgeWrap.appendChild(el);
+                });
+            }
         }
 
         function animate() {
@@ -543,11 +635,13 @@
                 item.pos.x = item.basePos.x + sway;
                 item.pos.z = z;
 
-                item.mesh.position.x = item.pos.x;
-                item.mesh.position.z = item.pos.z;
-                item.mesh.position.y = 2.0 + bob;
+                if (item.mesh) {
+                    item.mesh.position.x = item.pos.x;
+                    item.mesh.position.z = item.pos.z;
+                    item.mesh.position.y = 2.0 + bob;
 
-                item.mesh.rotation.y = Math.PI / 4 + Math.sin(t * 1.2 + index) * 0.06;
+                    item.mesh.rotation.y = Math.PI / 4 + Math.sin(t * 1.2 + index) * 0.06;
+                }
             });
 
             updateAllCardPositions();

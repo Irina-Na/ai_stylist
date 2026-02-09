@@ -63,19 +63,19 @@ class CoverConfig(BaseModel):
 
 class SceneConfig(BaseModel):
     """3D scene configuration"""
-    preset: str = "minimal"
+    preset: str = "gallery_night"
     fog_density: float = 0.02
-    fog_color: str = "#000000"
-    background_color: str = "#111111"
-    spotlight_intensity: float = 1.0
-    spotlight_color: str = "#ffffff"
-    particle_count: int = 500
-    particle_speed: float = 0.001
-    camera_distance: float = 15
-    camera_height: float = 5
-    theme: str = "minimal"
-    lighting: str = "soft"
-    atmosphere: str = "clean"
+    fog_color: str = "#0b0f16"
+    background_color: str = "#0b0f16"
+    spotlight_intensity: float = 1.1
+    spotlight_color: str = "#9cd6ff"
+    particle_count: int = 320
+    particle_speed: float = 0.0008
+    camera_distance: float = 11
+    camera_height: float = 4.2
+    theme: str = "Gallery Night"
+    lighting: str = "Cool Spotlights"
+    atmosphere: str = "Soft Haze"
 
 class TransitionConfig(BaseModel):
     """Animation transition effects"""
@@ -98,6 +98,21 @@ class RunwayScene(BaseModel):
 # ---------- Scene Presets ----------
 
 SCENE_PRESETS = {
+    "gallery_night": {
+        "preset": "gallery_night",
+        "fog_density": 0.02,
+        "fog_color": "#0b0f16",
+        "background_color": "#0b0f16",
+        "spotlight_intensity": 1.1,
+        "spotlight_color": "#9cd6ff",
+        "particle_count": 320,
+        "particle_speed": 0.0008,
+        "camera_distance": 11,
+        "camera_height": 4.2,
+        "theme": "Gallery Night",
+        "lighting": "Cool Spotlights",
+        "atmosphere": "Soft Haze"
+    },
     "paris_runway": {
         "preset": "paris_runway",
         "fog_density": 0.015,
@@ -390,7 +405,7 @@ def build_look_collage(items_data: List[Dict[str, Any]]) -> Optional[str]:
 
 def build_runway_scene(
     items_data: List[Dict[str, Any]],
-    preset: str = "minimal",
+    preset: str = "gallery_night",
     cover_title: str = "VOGUE",
     cover_subtitle: str = "Collection 2026",
     cover_badges: Optional[List[str]] = None
@@ -466,7 +481,7 @@ User command: {command}
 Generate a JSON response with this exact structure:
 {{
   "scene": {{
-    "preset": "paris_runway|cyberpunk|editorial_90s|red_carpet|minimal",
+    "preset": "gallery_night|paris_runway|cyberpunk|editorial_90s|red_carpet|minimal",
     "fog_density": 0.0-0.1,
     "fog_color": "#hexcolor",
     "background_color": "#hexcolor",
